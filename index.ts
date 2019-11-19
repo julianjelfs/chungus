@@ -5,21 +5,19 @@ import star from "./assets/star.png";
 import bomb from "./assets/bomb.png";
 import dude from "./assets/dude.png";
 
-let cursors;
-let player;
-let stars;
-let platforms;
-let score = 0;
-let scoreText;
-let bombs;
-let gameOver = false;
-
-
 class Scene1 extends Phaser.Scene {
-  constructor() {
+  constructor(
+    private score: number,
+    private cursors: Phaser.Types.Input.Keyboard.CursorKeys,
+    private scoreText: Phaser.GameObjects.Text,
+    private player: Phaser.Physics.Arcade.Sprite,
+    private platforms: Phaser.Physics.Arcade.StaticGroup,
+    private bombs: Phaser.Physics.Arcade.Group,
+    private stars: Phaser.Physics.Arcade.Group,
+    private gameOver: boolean = false
+  ) {
     super("main");
     this.score = 0;
-    this.hitBomb = this.hitBomb.bind(this);
   }
 
   preload() {
@@ -43,19 +41,28 @@ class Scene1 extends Phaser.Scene {
   }
 
   update() {
-    if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-200);
-      this.player.anims.play("left", true);
-    } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(200);
-      this.player.anims.play("right", true);
-    } else {
-      this.player.setVelocityX(0);
-      this.player.anims.play("turn");
-    }
+    if (
+      this.cursors &&
+      this.cursors.left &&
+      this.cursors.right &&
+      this.cursors.up &&
+      this.cursors.down &&
+      this.player
+    ) {
+      if (this.cursors.left.isDown) {
+        this.player.setVelocityX(-200);
+        this.player.anims.play("left", true);
+      } else if (this.cursors.right.isDown) {
+        this.player.setVelocityX(200);
+        this.player.anims.play("right", true);
+      } else {
+        this.player.setVelocityX(0);
+        this.player.anims.play("turn");
+      }
 
-    if (this.cursors.up.isDown && this.player.body.touching.down) {
-      this.player.setVelocityY(-330);
+      if (this.cursors.up.isDown && this.player.body.touching.down) {
+        this.player.setVelocityY(-330);
+      }
     }
   }
 
@@ -108,23 +115,30 @@ class Scene1 extends Phaser.Scene {
 
     this.physics.add.collider(this.bombs, this.platforms);
 
-    this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
+    this.physics.add.collider(
+      this.player,
+      this.bombs,
+      this.hitBomb,
+      undefined,
+      this
+    );
   }
 
-  collectStar(_, star) {
-    star.disableBody(true, true);
+  collectStar(_: unknown, star: Phaser.GameObjects.GameObject) {
+    (star as Phaser.Physics.Arcade.Image).disableBody(true, true);
     this.score += 10;
     this.scoreText.setText(`score: ${this.score}`);
 
     if (this.stars.countActive(true) === 0) {
       this.stars.children.iterate(child => {
-        child.enableBody(true, child.x, 0, true, true);
+        const c = child as Phaser.Physics.Arcade.Image;
+        c.enableBody(true, c.x, 0, true, true);
       });
 
       const x =
         this.player.x < 400
-        ? Phaser.Math.Between(400, 800)
-        : Phaser.Math.Between(0, 400);
+          ? Phaser.Math.Between(400, 800)
+          : Phaser.Math.Between(0, 400);
 
       const bomb = this.bombs.create(x, 16, "bomb");
       bomb.setBounce(1);
@@ -133,13 +147,10 @@ class Scene1 extends Phaser.Scene {
     }
   }
 
-  hitBomb(player, bomb) {
+  hitBomb() {
     this.physics.pause();
-
-    this.setTint(0xff0000);
-
-    this.anims.play("turn");
-
+    this.player.setTint(0xff0000);
+    this.player.anims.play("turn");
     this.gameOver = true;
   }
 
@@ -152,10 +163,17 @@ class Scene1 extends Phaser.Scene {
 
     this.physics.add.collider(this.stars, this.platforms);
 
-    this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+    this.physics.add.overlap(
+      this.player,
+      this.stars,
+      this.collectStar,
+      undefined,
+      this
+    );
 
     this.stars.children.iterate(child => {
-      child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+      const c = child as Phaser.Physics.Arcade.Image;
+      c.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
     });
   }
 }
